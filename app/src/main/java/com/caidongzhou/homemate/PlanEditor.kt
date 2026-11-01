@@ -16,6 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
+
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,12 +64,21 @@ fun PlanEditor(ctx: android.content.Context, plan: Plan, onClose: () -> Unit, on
 
     Box(Modifier.fillMaxSize().background(Color(0xF0080D1A))) {
         // 画布
-        Canvas(Modifier.fillMaxSize().pointerInput(mode) {
+        val textMeasurer = rememberTextMeasurer()
+        Canvas(Modifier.fillMaxSize().background(Color(0xFF0E1424)).pointerInput(mode) {
             detectTapGestures(
                 onTap = { off ->
                     val (wx, wy) = toWorld(off.x, off.y)
                     selected = hitTest(wx, wy)
                     pendingRect = null
+                },
+                onDoubleTap = { _ ->
+                    // 自动居中：把户型包围盒放到画布中央
+                    val b = work.bounds
+                    val wPx = (b[2] - b[0]) * zoom
+                    val hPx = (b[3] - b[1]) * zoom
+                    pan = (size.width - wPx) / 2f - b[0] * zoom to (size.height - hPx) / 2f - b[1] * zoom
+                    selected = null
                 }
             )
         }.pointerInput(mode) {
@@ -124,7 +139,7 @@ fun PlanEditor(ctx: android.content.Context, plan: Plan, onClose: () -> Unit, on
             )
         }) {
             // 网格
-            val gridColor = Color(0x22334466)
+            val gridColor = Color(0x332A3A5C)
             val step = zoom
             var gx = pan.first % step
             while (gx < size.width) { drawLine(gridColor, androidx.compose.ui.geometry.Offset(gx, 0f), androidx.compose.ui.geometry.Offset(gx, size.height), 1f); gx += step }
@@ -136,20 +151,35 @@ fun PlanEditor(ctx: android.content.Context, plan: Plan, onClose: () -> Unit, on
                 pan.first + (r.rect[0] + r.rect[2]) * zoom, pan.second + (r.rect[1] + r.rect[3]) * zoom
             )
 
+            fun textLayout(text: String, color: Color, size: androidx.compose.ui.unit.TextUnit, bold: Boolean = false) =
+                textMeasurer.measure(
+                    androidx.compose.ui.text.AnnotatedString(text),
+                    androidx.compose.ui.text.TextStyle(
+                        color = color,
+                        fontSize = size,
+                        fontWeight = if (bold) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Medium
+                    )
+                )
             // 房间
             for (r in work.rooms) {
                 val sel = selected == r
                 drawRoundRect(
-                    color = if (sel) Color(0x662A3B63) else Color(0x33182038),
+                    color = if (sel) Color(0x59263B66) else Color(0x2E1B2740),
                     topLeft = rectOf(r).topLeft, size = rectOf(r).size,
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(14f, 14f)
                 )
                 drawRoundRect(
-                    color = if (sel) Color(0xFF7FA8FF) else Color(0xFF3D4C74),
+                    color = if (sel) Color(0xFF8FB2FF) else Color(0xFF51628F),
                     topLeft = rectOf(r).topLeft, size = rectOf(r).size,
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(14f, 14f),
                     style = Stroke(2.5f)
                 )
+                // 房间名
+                val rect = rectOf(r)
+                val label = if (sel) r.name else r.name
+                val tl = textLayout(label, if (sel) Color(0xFFEAF1FF) else Color(0xFFD6E0F6), 15.sp, sel)
+                drawText(tl, topLeft = androidx.compose.ui.geometry.Offset(
+                    rect.center.x - tl.size.width / 2f, rect.center.y - tl.size.height / 2f))
             }
             // 待绘制的新房间
             pendingRect?.let { pr ->
@@ -161,23 +191,34 @@ fun PlanEditor(ctx: android.content.Context, plan: Plan, onClose: () -> Unit, on
                     style = Stroke(2f)
                 )
             }
-            // 灯 / 空调
             for (l in work.lights) {
                 val c = androidx.compose.ui.geometry.Offset(pan.first + l.pos[0] * zoom, pan.second + l.pos[1] * zoom)
-                drawCircle(if (selected == l) Color(0xFFFFC97A) else Color(0xFF9AA7C7), radius = if (selected == l) 14f else 10f, center = c)
+                val sel = selected == l
+                drawCircle(Color(0xE6FFC97A), radius = if (sel) 17f else 12f, center = c)
+                drawCircle(Color(0xFF0E1424), radius = 4f, center = c)
+                val tl = textLayout("灯", Color(0xFFFFD9A0), 12.sp, sel)
+                drawText(tl, topLeft = androidx.compose.ui.geometry.Offset(c.x - tl.size.width / 2f, c.y - tl.size.height - 24f))
             }
             for (a in work.acs) {
                 val c = androidx.compose.ui.geometry.Offset(pan.first + a.pos[0] * zoom, pan.second + a.pos[1] * zoom)
-                drawRect(Color(0xFF6FCF97), topLeft = androidx.compose.ui.geometry.Offset(c.x - 10f, c.y - 10f), size = androidx.compose.ui.geometry.Size(20f, 20f))
+                val sel = selected == a
+                drawRoundRect(
+                    color = if (sel) Color(0xFF8FE3B0) else Color(0xB36FCF97),
+                    topLeft = androidx.compose.ui.geometry.Offset(c.x - 13f, c.y - 13f),
+                    size = androidx.compose.ui.geometry.Size(26f, 26f),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(7f, 7f)
+                )
+                val ta = textLayout("空调", Color(0xFFBFF0D4), 12.sp, sel)
+                drawText(ta, topLeft = androidx.compose.ui.geometry.Offset(c.x - ta.size.width / 2f, c.y - ta.size.height - 26f))
             }
         }
 
         // 顶栏
         Row(Modifier.fillMaxWidth().background(Color(0xFF0C1220)).padding(top = 40.dp, bottom = 10.dp, start = 16.dp, end = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("取消", color = Color(0xFF8A96B8), fontSize = 14.sp, modifier = Modifier.clickable(onClick = onClose))
-            Text("编辑户型", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            Text("保存", color = Accent, fontSize = 14.sp, modifier = Modifier.clickable { onSave(work) })
+            Text("取消", color = Color(0xFF9FB0D6), fontSize = 16.sp, modifier = Modifier.clickable(onClick = onClose).padding(4.dp))
+            Text("编辑户型", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("保存", color = Color(0xFF8FB2FF), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { onSave(work) }.padding(4.dp))
         }
 
         // 底部工具栏
@@ -244,21 +285,27 @@ fun PlanEditor(ctx: android.content.Context, plan: Plan, onClose: () -> Unit, on
 
 @Composable
 fun EditorTool(icon: String, label: String, active: Boolean, onClick: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable(onClick = onClick)) {
-        Box(Modifier.size(44.dp).background(if (active) Color(0xFF2A3B63) else Color(0xFF161E33), RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
-            Text(icon, fontSize = 18.sp)
+    Column(horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 4.dp)) {
+        Box(Modifier.size(52.dp).background(if (active) Color(0xFF33507F) else Color(0xFF1B2540), RoundedCornerShape(16.dp)),
+            contentAlignment = Alignment.Center) {
+            Text(icon, fontSize = 22.sp)
         }
-        Text(label, fontSize = 10.sp, color = if (active) Accent else Color(0xFF6B7899))
+        Spacer(Modifier.height(6.dp))
+        Text(label, fontSize = 13.sp, color = if (active) Color(0xFFBFD4FF) else Color(0xFF9FB0D6), fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)
     }
 }
 
 @Composable
 fun EditorInfoBar(title: String, actions: List<Pair<String, () -> Unit>>) {
-    Row(Modifier.fillMaxWidth().background(Color(0xFF121A2C)).padding(horizontal = 16.dp, vertical = 10.dp),
+    Row(Modifier.fillMaxWidth().background(Color(0xFF182338)).padding(horizontal = 18.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(title, color = Color.White, fontSize = 13.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            actions.forEach { (label, act) -> Text(label, color = Accent, fontSize = 13.sp, modifier = Modifier.clickable(onClick = act)) }
+        Text(title, color = Color.White, fontSize = 15.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+        Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+            actions.forEach { (label, act) ->
+                Text(label, color = Color(0xFF8FB2FF), fontSize = 14.sp,
+                    modifier = Modifier.clickable(onClick = act))
+            }
         }
     }
 }

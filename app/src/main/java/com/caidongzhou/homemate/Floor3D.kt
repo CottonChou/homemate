@@ -47,7 +47,7 @@ class Floor3DRenderer {
         val ry = wy * ce - rz * se
         val depth = wy * se + rz * ce
         val persp = 1f / (1f + depth * 0.04f)
-        return P(ox + rx * scale * persp, oy - ry * scale * persp * 0.9f)
+        return P(ox + rx * scale * persp, oy + ry * scale * persp * 0.9f)
     }
 
     fun draw(canvas: Canvas, plan: Plan, viewW: Float, viewH: Float, onTapTest: ((MutableList<Triple<Float, Float, LightDevice>>) -> Unit)? = null) {
