@@ -169,6 +169,8 @@ class Floor3DRenderer {
         for (s in segs) {
             val mx = (s.x0 + s.x1) / 2f; val mz = (s.z0 + s.z1) / 2f
             val facing = (mx - cx) * viewDirX + (mz - cz) * viewDirZ
+            // 面向相机的外墙整段裁掉，露出屋内（参考 house-control 的 cutaway）
+            if (!s.interior && facing > 0.15f * ((b[2] - b[0]) + (b[3] - b[1])) * 0.25f) continue
             val cmd = buildWallCmd(s, plan, cx, cz, scale, ox, oy, dayAmt)
             if (facing > 0.15f) back.add(cmd) else front.add(cmd)
         }

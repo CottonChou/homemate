@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.text.font.FontWeight
 
 class MainActivity : ComponentActivity() {
@@ -45,32 +46,21 @@ fun App() {
     Surface(color = NightBg) {
         Box(Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize()) {
-                // 顶部状态
-                Row(Modifier.fillMaxWidth().padding(top = 46.dp, start = 20.dp, end = 20.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column {
-                        Text("晴 4.9°C", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
-                        Text("次卧 26.6°C · 47.2%", color = Color(0xFF93A0BE), fontSize = 12.sp)
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        TopIcon("🏠"); TopIcon("☀", active = !night, onClick = { night = false }); TopIcon("🌙", active = night, onClick = { night = true })
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                    when (tab) {
+                        0 -> HomeTab(plan, night, { night = !night }, { editorOpen = true }, onToggle = { l ->
+                            plan = plan.copy(lights = plan.lights.map { if (it.id == l.id) it.copy(on = !it.on) else it })
+                            PlanStore.save(ctx, plan)
+                        }, selectedRoom = selectedRoom, onSelectRoom = { selectedRoom = it })
+                        1 -> DevicesTab(plan)
+                        2 -> CalendarTab()
+                        else -> MineTab(plan, onEdit = { editorOpen = true })
                     }
                 }
 
-                when (tab) {
-                    0 -> HomeTab(plan, night, { night = !night }, { editorOpen = true }, onToggle = { l ->
-                        plan = plan.copy(lights = plan.lights.map { if (it.id == l.id) it.copy(on = !it.on) else it })
-                        PlanStore.save(ctx, plan)
-                    }, selectedRoom = selectedRoom, onSelectRoom = { selectedRoom = it })
-                    1 -> DevicesTab(plan)
-                    2 -> CalendarTab()
-                    else -> MineTab(plan, onEdit = { editorOpen = true })
-                }
-
-                Spacer(Modifier.weight(1f))
-
-                // 底部导航
-                Row(Modifier.fillMaxWidth().padding(bottom = 26.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                // 底部导航（避开手势条）
+                Row(Modifier.fillMaxWidth().background(Color(0xFF0C1322)).padding(top = 8.dp, bottom = 34.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly) {
                     NavItem("全屋", "🏠", tab == 0) { tab = 0 }
                     NavItem("设备", "▦", tab == 1) { tab = 1 }
                     NavItem("日历", "📅", tab == 2) { tab = 2 }
@@ -108,7 +98,7 @@ fun HomeTab(
     onToggle: (LightDevice) -> Unit, selectedRoom: String?, onSelectRoom: (String?) -> Unit
 ) {
     Column(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxWidth().height(280.dp)) {
+        Box(Modifier.fillMaxWidth().height(320.dp)) {
             AndroidView(
                 factory = { c -> Home3DView(c).apply {
                     this.plan = plan
@@ -117,9 +107,21 @@ fun HomeTab(
                 update = { v -> v.plan = plan; v.setNight(night) },
                 modifier = Modifier.fillMaxSize()
             )
+            // 顶部状态覆盖在 3D 画布上（对照参考截图）
+            Row(Modifier.fillMaxWidth().padding(top = 52.dp, start = 20.dp, end = 20.dp)
+                    .align(Alignment.TopCenter),
+                horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text("晴 4.9°C", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                    Text("次卧 26.6°C · 47.2%", color = Color(0xFF93A0BE), fontSize = 12.sp)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    TopIcon("🏠"); TopIcon("☀", active = !night, onClick = { onToggleNight() }); TopIcon("🌙", active = night, onClick = { onToggleNight() })
+                }
+            }
             // 3D 视图角上的编辑入口
             Text("编辑户型", color = Accent, fontSize = 12.sp,
-                modifier = Modifier.align(Alignment.TopEnd).padding(14.dp).background(Panel, RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 5.dp).clickable(onClick = onEdit))
+                modifier = Modifier.align(Alignment.TopEnd).padding(top = 110.dp, end = 14.dp).background(Panel, RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 5.dp).clickable(onClick = onEdit))
         }
 
         // 场景快捷

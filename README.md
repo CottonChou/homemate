@@ -10,6 +10,16 @@ Kotlin · Jetpack Compose · 自研 3D 渲染引擎 · 零第三方依赖
 
 ---
 
+## 📸 截图
+
+| 白天 ☀ | 黑夜 🌙（主卧灯已开） |
+| --- | --- |
+| ![白天](docs/img/day.png) | ![黑夜](docs/img/night.png) |
+
+| 户型编辑器 ✏️ |
+| --- |
+| ![编辑器](docs/img/editor.png) |
+
 灵感来自 [0xProbabillity/house-control](https://github.com/0xProbabillity/house-control)（Mac/iOS 的 3D 户型控制面板）
 与小红书「阿禾」AI 管家项目。house-control 没有安卓版本，于是有了 HomeMate ——
 把同样的「JSON 户型 + 3D 场景 + 灯光即照明」体验带到安卓上。
