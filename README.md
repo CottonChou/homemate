@@ -20,9 +20,8 @@ Kotlin · Jetpack Compose · 自研 3D 渲染引擎 · 零第三方依赖
 | --- |
 | ![编辑器](docs/img/editor.png) |
 
-灵感来自 [0xProbabillity/house-control](https://github.com/0xProbabillity/house-control)（Mac/iOS 的 3D 户型控制面板）
-与小红书「阿禾」AI 管家项目。house-control 没有安卓版本，于是有了 HomeMate ——
-把同样的「JSON 户型 + 3D 场景 + 灯光即照明」体验带到安卓上。
+灵感来自 [0xProbabillity/house-control](https://github.com/0xProbabillity/house-control)（Mac/iOS 的 3D 户型控制面板）。
+house-control 没有安卓版本，于是有了 HomeMate —— 把同样的「JSON 户型 + 3D 场景 + 灯光即照明」体验带到安卓上。
 
 ## ✨ 功能
 
@@ -100,7 +99,7 @@ app/src/main/java/com/caidongzhou/homemate/
 ## 🗺 Roadmap
 
 - [ ] Home Assistant 对接（REST / WebSocket，灯与空调映射到实体）
-- [ ] 语音入口（配合 Mac mini 上的「阿禾」AI 管家核心）
+- [ ] 语音入口（本地语音识别 + 意图控制设备）
 - [ ] 户型导入 / 导出、分享
 - [ ] 更多家具类型与材质
 - [ ] 平板 / 折叠屏自适应布局
@@ -109,7 +108,6 @@ app/src/main/java/com/caidongzhou/homemate/
 
 - [0xProbabillity/house-control](https://github.com/0xProbabillity/house-control) — 架构与 plan 格式灵感
 - [Mastershort/neonplan3d](https://github.com/Mastershort/neonplan3d) — 同类 HA 3D 户型卡片
-- 「阿禾」AI 管家（小红书）— UI 参考
 
 ## License
 
