@@ -64,6 +64,22 @@ house-control 没有安卓版本，于是有了 HomeMate —— 把同样的「J
 
 坐标单位为米，`x` 向右、`z` 向下、`y` 向上。内置两室一厅示例，开箱即可玩。
 
+## 🏠 对接 Home Assistant
+
+「我的 → Home Assistant」填入服务器地址和长期访问令牌即可启用。
+
+**设备映射**：编辑 plan.json，给灯和空调加 `entity` 字段绑定 HA 实体：
+
+```jsonc
+"lights": [{ "id": "living.main", "entity": "light.living_room", ... }],
+"acs":    [{ "id": "bed1.ac", "entity": "climate.bedroom", ... }]
+```
+
+绑定后的行为：
+- App 内开关灯 / 调温 → 实时调用 HA 的 `light.turn_on/off`、`climate.set_temperature`
+- HA 侧任何变动（自动化、其他客户端）→ WebSocket 推送到 App，3D 场景和列表实时更新
+- 未绑定的设备继续本地模拟，互不影响
+
 ## 📲 安装
 
 从 [Releases](../../releases) 下载 `HomeMate-debug.apk` 传到手机安装（允许未知来源），或：
@@ -98,7 +114,7 @@ app/src/main/java/com/caidongzhou/homemate/
 
 ## 🗺 Roadmap
 
-- [ ] Home Assistant 对接（REST / WebSocket，灯与空调映射到实体）
+- [x] Home Assistant 对接（REST / WebSocket，灯与空调映射到实体）
 - [ ] 语音入口（本地语音识别 + 意图控制设备）
 - [ ] 户型导入 / 导出、分享
 - [ ] 更多家具类型与材质

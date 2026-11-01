@@ -7,8 +7,8 @@ import org.json.JSONObject
 data class Room(val id: String, val name: String, val rect: FloatArray, val floor: String)
 data class Opening(val type: String, val from: FloatArray, val to: FloatArray, val sill: Float, val head: Float)
 data class Furniture(val type: String, val pos: FloatArray, val rot: Float, val width: Float, val size: FloatArray?, val color: String?)
-data class LightDevice(val id: String, val name: String, val room: String, val type: String, val pos: FloatArray, val on: Boolean, val brightness: Float)
-data class AcDevice(val id: String, val name: String, val room: String, val pos: FloatArray, val on: Boolean, val target: Float)
+data class LightDevice(val id: String, val name: String, val room: String, val type: String, val pos: FloatArray, val on: Boolean, val brightness: Float, val entity: String? = null)
+data class AcDevice(val id: String, val name: String, val room: String, val pos: FloatArray, val on: Boolean, val target: Float, val entity: String? = null)
 
 data class Plan(
     val name: String,
@@ -64,14 +64,15 @@ data class Plan(
             for (i in 0 until lArr.length()) {
                 val l = lArr.getJSONObject(i)
                 lights.add(LightDevice(l.getString("id"), l.getString("name"), l.getString("room"), l.optString("type", "ceiling"),
-                    fa(l.getJSONArray("pos")), l.optBoolean("on", false), l.optDouble("brightness", 1.0).toFloat()))
+                    fa(l.getJSONArray("pos")), l.optBoolean("on", false), l.optDouble("brightness", 1.0).toFloat(),
+                    l.optString("entity", null)))
             }
             val acs = mutableListOf<AcDevice>()
             val aArr = o.optJSONArray("acs") ?: JSONArray()
             for (i in 0 until aArr.length()) {
                 val a = aArr.getJSONObject(i)
                 acs.add(AcDevice(a.getString("id"), a.getString("name"), a.getString("room"), fa(a.getJSONArray("pos")),
-                    a.optBoolean("on", false), a.optDouble("target", 24.0).toFloat()))
+                    a.optBoolean("on", false), a.optDouble("target", 24.0).toFloat(), a.optString("entity", null)))
             }
             val cam = o.optJSONObject("camera") ?: JSONObject()
             return Plan(
@@ -103,9 +104,11 @@ data class Plan(
                     f.color?.let { put("color", it) } } }))
             o.put("lights", ja(p.lights.map { l -> JSONObject().put("id", l.id).put("name", l.name).put("room", l.room)
                 .put("type", l.type).put("pos", JSONArray(l.pos.map { it.toDouble() }))
-                .put("on", l.on).put("brightness", l.brightness.toDouble()) }))
+                .put("on", l.on).put("brightness", l.brightness.toDouble())
+                .apply { l.entity?.let { put("entity", it) } } }))
             o.put("acs", ja(p.acs.map { a -> JSONObject().put("id", a.id).put("name", a.name).put("room", a.room)
-                .put("pos", JSONArray(a.pos.map { it.toDouble() })).put("on", a.on).put("target", a.target.toDouble()) }))
+                .put("pos", JSONArray(a.pos.map { it.toDouble() })).put("on", a.on).put("target", a.target.toDouble())
+                .apply { a.entity?.let { put("entity", it) } } }))
             return o.toString(2)
         }
 

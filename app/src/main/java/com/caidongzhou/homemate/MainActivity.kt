@@ -115,19 +115,47 @@ fun App() {
     var night by remember { mutableStateOf(false) }
     var editorOpen by remember { mutableStateOf(false) }
     var selectedRoom by remember { mutableStateOf<String?>(null) }
+    var settingsOpen by remember { mutableStateOf(false) }
+    var haConnected by remember { mutableStateOf(false) }
+
+    // HA 集成：配置了地址就自动连接
+    var ha by remember { mutableStateOf<HaClient?>(null) }
+    DisposableEffect(Unit) {
+        val client = if (HaSettings.enabled(ctx) && HaSettings.url(ctx).isNotEmpty())
+            HaClient(HaSettings.url(ctx), HaSettings.token(ctx)) else null
+        ha = client
+        client?.onConnectionChanged = { haConnected = it }
+        client?.onStateChanged = { states ->
+            plan = HaSettings.applyStates(plan, states)
+            PlanStore.save(ctx, plan)
+        }
+        if (client != null) {
+            client.fetchStates(plan,
+                onDone = { states -> plan = HaSettings.applyStates(plan, states); PlanStore.save(ctx, plan) },
+                onError = { })
+            client.startWebSocket(plan)
+        }
+        onDispose { client?.stop() }
+    }
+
+    fun toggleLight(l: LightDevice) {
+        // 本地立即翻转（乐观更新），再推送到 HA
+        plan = plan.copy(lights = plan.lights.map { if (it.id == l.id) it.copy(on = !it.on) else it })
+        PlanStore.save(ctx, plan)
+        val entity = l.entity
+        if (entity != null) ha?.setLight(entity, !l.on, l.brightness)
+    }
 
     Surface(color = NightBg) {
         Box(Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     when (tab) {
-                        0 -> HomeTab(plan, night, { night = !night }, { editorOpen = true }, onToggle = { l ->
-                            plan = plan.copy(lights = plan.lights.map { if (it.id == l.id) it.copy(on = !it.on) else it })
-                            PlanStore.save(ctx, plan)
-                        }, selectedRoom = selectedRoom, onSelectRoom = { selectedRoom = it })
+                        0 -> HomeTab(plan, night, { night = !night }, { editorOpen = true }, onToggle = { l -> toggleLight(l) }, selectedRoom = selectedRoom, onSelectRoom = { selectedRoom = it })
                         1 -> DevicesTab(plan)
                         2 -> CalendarTab()
-                        else -> MineTab(plan, onEdit = { editorOpen = true })
+                        else -> MineTab(plan, onEdit = { editorOpen = true }, onHaSettings = { settingsOpen = true },
+                            haUrl = HaSettings.url(ctx), haEnabled = HaSettings.enabled(ctx), haConnected = haConnected)
                     }
                 }
 
@@ -145,7 +173,28 @@ fun App() {
 
             if (editorOpen) PlanEditor(ctx, plan, onClose = { editorOpen = false }, onSave = {
                 plan = it; PlanStore.save(ctx, it); editorOpen = false
+                // 重新拉状态（entity 映射可能变了）
+                ha?.fetchStates(plan, onDone = { states -> plan = HaSettings.applyStates(plan, states) }, onError = { })
+                ha?.stop(); ha?.startWebSocket(plan)
             })
+
+            if (settingsOpen) HaSettingsScreen(
+                initialUrl = HaSettings.url(ctx), initialToken = HaSettings.token(ctx),
+                initialEnabled = HaSettings.enabled(ctx),
+                onClose = { settingsOpen = false },
+                onSave = { url, token, enabled ->
+                    HaSettings.save(ctx, url, token, enabled)
+                    settingsOpen = false
+                    ha?.stop()
+                    if (enabled && url.isNotEmpty()) {
+                        val c = HaClient(url, token)
+                        ha = c
+                        c.onConnectionChanged = { haConnected = it }
+                        c.onStateChanged = { states -> plan = HaSettings.applyStates(plan, states); PlanStore.save(ctx, plan) }
+                        c.fetchStates(plan, onDone = { states -> plan = HaSettings.applyStates(plan, states); PlanStore.save(ctx, plan) }, onError = { })
+                        c.startWebSocket(plan)
+                    } else { ha = null; haConnected = false }
+                })
         }
     }
 }
@@ -279,12 +328,14 @@ fun CalendarTab() {
 }
 
 @Composable
-fun MineTab(plan: Plan, onEdit: () -> Unit) {
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+fun MineTab(plan: Plan, onEdit: () -> Unit, onHaSettings: () -> Unit, haUrl: String, haEnabled: Boolean, haConnected: Boolean) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("我的", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
         MineRow("✏️", "编辑户型", onClick = onEdit)
+        MineRow("🏠", if (haEnabled && haUrl.isNotEmpty())
+            "Home Assistant · ${if (haConnected) "已连接" else "未连接"}" else "Home Assistant · 未配置", onClick = onHaSettings)
         MineRow("📊", "房间 ${plan.rooms.size} · 灯 ${plan.lights.size} · 空调 ${plan.acs.size}")
-        MineRow("ℹ️", "HomeMate 0.1.0")
+        MineRow("ℹ️", "HomeMate 0.2.0")
     }
 }
 
