@@ -12,13 +12,13 @@ Kotlin · Jetpack Compose · 自研 3D 渲染引擎 · 零第三方依赖
 
 ## 📸 截图
 
-| 白天 ☀ | 黑夜 🌙（主卧灯已开） |
+| 全屋 · 白天 ☀ | 全屋 · 黑夜 🌙 |
 | --- | --- |
 | ![白天](docs/img/day.png) | ![黑夜](docs/img/night.png) |
 
-| 户型编辑器 ✏️ |
-| --- |
-| ![编辑器](docs/img/editor.png) |
+| 户型编辑器 ✏️ | Home Assistant 🔌 | 我的 ⚙️ |
+| --- | --- | --- |
+| ![编辑器](docs/img/editor.png) | ![HA 设置](docs/img/ha_settings.png) | ![我的](docs/img/mine.png) |
 
 灵感来自 [0xProbabillity/house-control](https://github.com/0xProbabillity/house-control)（Mac/iOS 的 3D 户型控制面板）。
 house-control 没有安卓版本，于是有了 HomeMate —— 把同样的「JSON 户型 + 3D 场景 + 灯光即照明」体验带到安卓上。
@@ -45,6 +45,12 @@ house-control 没有安卓版本，于是有了 HomeMate —— 把同样的「J
 - **设备**：全屋设备列表，实时同步状态
 - **日历 / 我的**：入口与设备统计
 - 深蓝夜色主题，对照真实智能家居 UI 还原
+
+### 🏠 Home Assistant 对接
+- 「我的 → Home Assistant」填地址 + 长期访问令牌，一键启用
+- plan.json 灯/空调加 `entity` 字段绑定 HA 实体（`light.*` / `climate.*`）
+- 双向同步：App 控制 → REST 调用 HA；HA 侧变动 → WebSocket 推送，3D 场景实时跟着变
+- 未绑定的设备保持本地模拟，互不影响
 
 ### 🔌 数据格式
 户型就是一个 JSON 文件（`files/plans/plan.json`），字段与 house-control 的
@@ -109,7 +115,11 @@ app/src/main/java/com/caidongzhou/homemate/
 ├── HomeView.kt     3D 交互视图（旋转手势 · 点灯命中）
 ├── PlanEditor.kt   户型编辑器（平面画布 · 手势编辑 · 工具栏）
 ├── PlanStore.kt    plan.json 存取
-└── MainActivity.kt Compose UI（四 Tab · 夜色主题）
+├── HaClient.kt     Home Assistant 客户端（REST 控制 + WebSocket 订阅）
+├── WsFrames.kt     最小 WebSocket 帧协议实现（无第三方依赖）
+├── HaSettings.kt   HA 连接配置与状态应用
+├── HaSettingsScreen.kt HA 设置界面
+└── MainActivity.kt Compose UI（四 Tab · 夜色主题 · 线性图标）
 ```
 
 ## 🗺 Roadmap
