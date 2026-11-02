@@ -147,11 +147,11 @@ data class Plan(
             { "type": "plant", "pos": [4.4, 0.6], "height": 1.1 }
           ],
           "lights": [
-            { "id": "living.main", "name": "客厅主灯", "room": "living", "type": "ceiling", "pos": [2.4, 2.1] },
+            { "id": "living.main", "name": "客厅主灯", "room": "living", "type": "ceiling", "pos": [2.4, 2.1], "on": true, "brightness": 0.9 },
             { "id": "living.spot", "name": "灯带左键", "room": "living", "type": "strip", "pos": [0.15, 2.1], "y": 2.4 },
-            { "id": "dining.main", "name": "餐厅吊灯", "room": "dining", "type": "ceiling", "pos": [6.1, 1.5] },
-            { "id": "kitchen.main", "name": "厨房灯", "room": "kitchen", "type": "ceiling", "pos": [6.1, 4.2] },
-            { "id": "bed1.main", "name": "主卧灯", "room": "bed1", "type": "ceiling", "pos": [1.9, 5.9] },
+            { "id": "dining.main", "name": "餐厅吊灯", "room": "dining", "type": "ceiling", "pos": [6.1, 1.5], "on": true, "brightness": 0.72 },
+            { "id": "kitchen.main", "name": "厨房灯", "room": "kitchen", "type": "ceiling", "pos": [6.1, 4.2], "on": true, "brightness": 0.65 },
+            { "id": "bed1.main", "name": "主卧灯", "room": "bed1", "type": "ceiling", "pos": [1.9, 5.9], "on": true, "brightness": 0.62 },
             { "id": "bed1.bedside", "name": "床头灯", "room": "bed1", "type": "floor", "pos": [3.3, 4.8] },
             { "id": "bed2.main", "name": "次卧灯", "room": "bed2", "type": "ceiling", "pos": [5.1, 5.9] },
             { "id": "bath.main", "name": "卫生间灯", "room": "bath", "type": "ceiling", "pos": [6.9, 6.4] }

@@ -1,11 +1,13 @@
 package com.caidongzhou.homemate
 
 import android.os.Bundle
+import android.app.Activity
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 
 import androidx.compose.ui.draw.clip
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,10 +30,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.WindowCompat
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -103,6 +108,42 @@ fun LineIcon(kind: String, color: Color, modifier: Modifier = Modifier) {
                 drawLine(color, Offset(s * .2f, s * .6f), Offset(s * .3f, s * .7f), w)
                 drawLine(color, Offset(s * .16f, s * .84f), Offset(s * .36f, s * .84f), w)
             }
+            "plus" -> {
+                drawLine(color, Offset(s * .5f, s * .2f), Offset(s * .5f, s * .8f), w)
+                drawLine(color, Offset(s * .2f, s * .5f), Offset(s * .8f, s * .5f), w)
+            }
+            "bulb" -> {
+                drawCircle(color, radius = s * .22f, center = Offset(s * .5f, s * .38f), style = Stroke(w))
+                drawLine(color, Offset(s * .39f, s * .66f), Offset(s * .61f, s * .66f), w)
+                drawLine(color, Offset(s * .42f, s * .76f), Offset(s * .58f, s * .76f), w)
+                drawLine(color, Offset(s * .35f, s * .57f), Offset(s * .35f, s * .66f), w)
+                drawLine(color, Offset(s * .65f, s * .57f), Offset(s * .65f, s * .66f), w)
+            }
+            "snow" -> {
+                for (i in 0..2) {
+                    val a = Math.toRadians((i * 60).toDouble())
+                    val dx = kotlin.math.cos(a).toFloat() * s * .34f
+                    val dy = kotlin.math.sin(a).toFloat() * s * .34f
+                    drawLine(color, Offset(s * .5f - dx, s * .5f - dy), Offset(s * .5f + dx, s * .5f + dy), w)
+                }
+            }
+            "reset" -> {
+                drawArc(color, startAngle = 35f, sweepAngle = 285f, useCenter = false,
+                    topLeft = Offset(s * .22f, s * .22f), size = Size(s * .56f, s * .56f), style = Stroke(w))
+                drawLine(color, Offset(s * .68f, s * .19f), Offset(s * .76f, s * .31f), w)
+                drawLine(color, Offset(s * .76f, s * .31f), Offset(s * .63f, s * .32f), w)
+            }
+            "chart" -> {
+                drawLine(color, Offset(s * .18f, s * .82f), Offset(s * .84f, s * .82f), w)
+                drawRoundRect(color, Offset(s * .24f, s * .55f), Size(s * .12f, s * .27f), r)
+                drawRoundRect(color, Offset(s * .44f, s * .38f), Size(s * .12f, s * .44f), r)
+                drawRoundRect(color, Offset(s * .64f, s * .20f), Size(s * .12f, s * .62f), r)
+            }
+            "info" -> {
+                drawCircle(color, radius = s * .34f, center = Offset(s * .5f, s * .5f), style = Stroke(w))
+                drawLine(color, Offset(s * .5f, s * .46f), Offset(s * .5f, s * .68f), w)
+                drawCircle(color, radius = 1.8f.dp.toPx(), center = Offset(s * .5f, s * .33f))
+            }
         }
     }
 }
@@ -146,28 +187,36 @@ fun App() {
         if (entity != null) ha?.setLight(entity, !l.on, l.brightness)
     }
 
-    Surface(color = NightBg) {
+    val c = uiColors(night)
+    val view = LocalView.current
+    SideEffect {
+        val window = (view.context as? Activity)?.window ?: return@SideEffect
+        WindowCompat.getInsetsController(window, view).apply {
+            isAppearanceLightStatusBars = !night
+            isAppearanceLightNavigationBars = !night
+        }
+    }
+    Surface(color = c.page) {
         Box(Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     when (tab) {
                         0 -> HomeTab(plan, night, { night = !night }, { editorOpen = true }, onToggle = { l -> toggleLight(l) }, selectedRoom = selectedRoom, onSelectRoom = { selectedRoom = it })
-                        1 -> DevicesTab(plan)
-                        2 -> CalendarTab()
-                        else -> MineTab(plan, onEdit = { editorOpen = true }, onHaSettings = { settingsOpen = true },
+                        1 -> DevicesTab(plan, night)
+                        else -> MineTab(plan, night, onEdit = { editorOpen = true }, onHaSettings = { settingsOpen = true },
                             haUrl = HaSettings.url(ctx), haEnabled = HaSettings.enabled(ctx), haConnected = haConnected)
                     }
                 }
 
-                // 底部导航
-                Row(Modifier.fillMaxWidth().background(Color(0xFF0C1322))
-                        .windowInsetsPadding(WindowInsets.navigationBars)
-                        .padding(top = 10.dp, bottom = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly) {
-                    NavItem("全屋", "home", tab == 0) { tab = 0 }
-                    NavItem("设备", "grid", tab == 1) { tab = 1 }
-                    NavItem("日历", "calendar", tab == 2) { tab = 2 }
-                    NavItem("我的", "user", tab == 3) { tab = 3 }
+                // 底部导航：白天白底 + 顶部细分割线
+                Column(Modifier.fillMaxWidth().background(c.surface).windowInsetsPadding(WindowInsets.navigationBars)) {
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(c.border))
+                    Row(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly) {
+                        NavItem("全屋", "home", tab == 0, c) { tab = 0 }
+                        NavItem("设备", "grid", tab == 1, c) { tab = 1 }
+                        NavItem("我的", "user", tab == 2, c) { tab = 2 }
+                    }
                 }
             }
 
@@ -200,11 +249,12 @@ fun App() {
 }
 
 @Composable
-fun NavItem(label: String, icon: String, active: Boolean, onClick: () -> Unit) {
-    val tint = if (active) Accent else Color(0xFF5B688A)
+fun NavItem(label: String, icon: String, active: Boolean, c: UiColors, onClick: () -> Unit) {
+    val tint = if (active) c.accent else c.textSecondary
     Column(horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 4.dp)) {
-        Box(Modifier.size(width = 44.dp, height = 30.dp).background(if (active) Color(0xFF22304F) else Color.Transparent, RoundedCornerShape(10.dp)),
+        Box(Modifier.size(width = 44.dp, height = 30.dp)
+            .background(if (active) c.accentSoft else Color.Transparent, RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center) {
             LineIcon(icon, tint)
         }
@@ -213,13 +263,14 @@ fun NavItem(label: String, icon: String, active: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-fun TopIcon(icon: String, active: Boolean = true, onClick: (() -> Unit)? = null) {
-    Box(Modifier.size(40.dp).background(if (active) PanelHi else Panel, RoundedCornerShape(13.dp))
+fun TopIcon(icon: String, c: UiColors, active: Boolean = true, onClick: (() -> Unit)? = null) {
+    Box(Modifier.size(40.dp)
+        .background(if (active) c.surface else c.surfaceAlt, RoundedCornerShape(13.dp))
         .clickable { onClick?.invoke() }, contentAlignment = Alignment.Center) {
         when (icon) {
-            "☀" -> LineIcon("sun", if (active) Warm else Color(0xFF5B688A))
-            "🌙" -> LineIcon("moon", if (active) Accent else Color(0xFF5B688A))
-            else -> LineIcon("home", Color(0xFF93A0BE))
+            "☀" -> LineIcon("sun", if (active) Color(0xFFE8A33D) else c.textSecondary)
+            "🌙" -> LineIcon("moon", if (active) c.accent else c.textSecondary)
+            else -> LineIcon(icon, c.textSecondary)
         }
     }
 }
@@ -229,19 +280,20 @@ fun HomeTab(
     plan: Plan, night: Boolean, onToggleNight: () -> Unit, onEdit: () -> Unit,
     onToggle: (LightDevice) -> Unit, selectedRoom: String?, onSelectRoom: (String?) -> Unit
 ) {
+    val c = uiColors(night)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Box(Modifier.fillMaxWidth().height(320.dp)) {
+        Box(Modifier.fillMaxWidth().height(340.dp)) {
             AndroidView(
                 factory = { c -> Home3DView(c).apply {
                     this.plan = plan; onLightToggle = onToggle
                     val density = c.resources.displayMetrics.density
-                    topInsetPx = 88 * density; bottomInsetPx = 8 * density
+                    topInsetPx = 112 * density; bottomInsetPx = 8 * density
                 } },
                 update = { v -> v.plan = plan; v.setNight(night) },
                 modifier = Modifier.fillMaxSize()
             )
-            val topText = if (night) Color.White else Color(0xFF1C2436)
-            val topSub = if (night) Color(0xFF93A0BE) else Color(0xFF5A6880)
+            val topText = c.textPrimary
+            val topSub = c.textSecondary
             Row(Modifier.fillMaxWidth().padding(top = 46.dp, start = 20.dp, end = 20.dp).align(Alignment.TopCenter),
                 horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
@@ -249,32 +301,33 @@ fun HomeTab(
                     Text("次卧 26.6°C · 47.2%", color = topSub, fontSize = 12.sp)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    TopIcon("🏠"); TopIcon("☀", active = !night, onClick = { onToggleNight() }); TopIcon("🌙", active = night, onClick = { onToggleNight() })
+                    TopIcon("home", c); TopIcon("☀", c, active = !night, onClick = { onToggleNight() }); TopIcon("🌙", c, active = night, onClick = { onToggleNight() })
                 }
             }
-            Text("编辑户型", color = Accent, fontSize = 12.sp,
+            Text("编辑户型", color = c.accent, fontSize = 12.sp,
                 modifier = Modifier.align(Alignment.TopEnd).padding(top = 106.dp, end = 14.dp)
-                    .background(Panel, RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 5.dp).clickable(onClick = onEdit))
+                    .background(if (night) c.surface else Color(0xF2FFFFFF), RoundedCornerShape(10.dp))
+                    .padding(horizontal = 10.dp, vertical = 5.dp).clickable(onClick = onEdit))
         }
 
         Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SceneChip("回家"); SceneChip("离家"); SceneChip("睡眠")
+            SceneChip("回家", c); SceneChip("离家", c); SceneChip("睡眠", c)
         }
         Spacer(Modifier.height(12.dp))
 
         Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip2("全屋", selectedRoom == null) { onSelectRoom(null) }
-            plan.rooms.take(4).forEach { r -> FilterChip2(r.name, selectedRoom == r.id) { onSelectRoom(r.id) } }
+            FilterChip2("全屋", selectedRoom == null, c) { onSelectRoom(null) }
+            plan.rooms.take(4).forEach { r -> FilterChip2(r.name, selectedRoom == r.id, c) { onSelectRoom(r.id) } }
         }
         Spacer(Modifier.height(12.dp))
 
         Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             plan.acs.filter { selectedRoom == null || it.room == selectedRoom }.forEach { ac ->
-                DeviceRow("❄", ac.name, if (ac.on) "运行中 · ${ac.target.toInt()}°C" else "已关闭", ac.on)
+                DeviceRow("snow", ac.name, if (ac.on) "运行中 · ${ac.target.toInt()}°C" else "已关闭", ac.on, c = c)
             }
             plan.lights.filter { selectedRoom == null || it.room == selectedRoom }.forEach { l ->
                 val roomName = plan.roomById(l.room)?.name ?: ""
-                DeviceRow("💡", l.name, "$roomName · ${if (l.on) "已开启" else "已关闭"}", l.on) { onToggle(l) }
+                DeviceRow("bulb", l.name, "$roomName · ${if (l.on) "已开启" else "已关闭"}", l.on, c = c) { onToggle(l) }
             }
         }
         Spacer(Modifier.height(10.dp))
@@ -282,73 +335,79 @@ fun HomeTab(
 }
 
 @Composable
-fun SceneChip(name: String) {
-    Row(Modifier.background(Panel, RoundedCornerShape(14.dp)).padding(horizontal = 14.dp, vertical = 9.dp)) {
-        Text(name, color = Color(0xFFC6D0E8), fontSize = 13.sp)
+fun SceneChip(name: String, c: UiColors) {
+    Row(Modifier.background(c.surface, RoundedCornerShape(14.dp)).border(1.dp, c.border, RoundedCornerShape(14.dp))
+        .padding(horizontal = 14.dp, vertical = 9.dp)) {
+        Text(name, color = c.textPrimary, fontSize = 13.sp)
     }
 }
 
 @Composable
-fun FilterChip2(name: String, active: Boolean, onClick: () -> Unit) {
-    Text(name, fontSize = 13.sp, color = if (active) Color.White else Color(0xFF6B7899),
-        modifier = Modifier.background(if (active) Color(0xFF2A3B63) else Panel, RoundedCornerShape(13.dp))
+fun FilterChip2(name: String, active: Boolean, c: UiColors, onClick: () -> Unit) {
+    Text(name, fontSize = 13.sp, color = if (active) c.accent else c.textSecondary,
+        modifier = Modifier.background(if (active) c.accentSoft else c.surface, RoundedCornerShape(13.dp))
+            .border(1.dp, if (active) c.accentSoft else c.border, RoundedCornerShape(13.dp))
             .padding(horizontal = 13.dp, vertical = 7.dp).clickable(onClick = onClick))
 }
 
 @Composable
-fun DeviceRow(icon: String, title: String, sub: String, on: Boolean, onClick: (() -> Unit)? = null) {
-    Row(Modifier.fillMaxWidth().background(if (on) Color(0xFF332B18) else Panel, RoundedCornerShape(16.dp))
+fun DeviceRow(icon: String, title: String, sub: String, on: Boolean, c: UiColors = uiColors(true), onClick: (() -> Unit)? = null) {
+    Row(Modifier.fillMaxWidth()
+            .background(if (on) c.onCardWarm else c.surface, RoundedCornerShape(16.dp))
+            .border(1.dp, if (on) Color(0x00FFFFFF) else c.border, RoundedCornerShape(16.dp))
             .clickable { onClick?.invoke() }.padding(14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(icon, fontSize = 18.sp)
-        Column(Modifier.weight(1f)) {
-            Text(title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Text(sub, color = Color(0xFF8A96B8), fontSize = 11.sp)
+        Box(Modifier.size(36.dp).background(c.surfaceAlt, RoundedCornerShape(11.dp)), contentAlignment = Alignment.Center) {
+            LineIcon(icon, if (on) Color(0xFFE1A33F) else c.textSecondary, Modifier.size(20.dp))
         }
-        Box(Modifier.size(10.dp).background(if (on) Warm else Color(0xFF3D4A68), CircleShape))
+        Column(Modifier.weight(1f)) {
+            Text(title, color = c.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Text(sub, color = c.textSecondary, fontSize = 11.sp)
+        }
+        Box(Modifier.size(10.dp).background(if (on) Color(0xFFF0A93E) else c.dotOff, CircleShape))
     }
 }
 
 @Composable
-fun DevicesTab(plan: Plan) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+fun DevicesTab(plan: Plan, night: Boolean) {
+    val c = uiColors(night)
+    Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)
+        .verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("设备", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("${plan.lights.size + plan.acs.size}", color = Color(0xFF6B7899), fontSize = 16.sp)
+            Text("设备", color = c.textPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("${plan.lights.size + plan.acs.size}", color = c.textSecondary, fontSize = 16.sp)
             Spacer(Modifier.weight(1f))
             Text("实时同步", color = Color(0xFF6FCF97), fontSize = 11.sp)
             Box(Modifier.size(7.dp).background(Color(0xFF6FCF97), CircleShape))
         }
-        plan.acs.forEach { ac -> DeviceRow("❄", ac.name, plan.roomById(ac.room)?.name ?: "", ac.on) }
-        plan.lights.forEach { l -> DeviceRow("💡", l.name, plan.roomById(l.room)?.name ?: "", l.on) }
+        plan.acs.forEach { ac -> DeviceRow("snow", ac.name, plan.roomById(ac.room)?.name ?: "", ac.on, c) }
+        plan.lights.forEach { l -> DeviceRow("bulb", l.name, plan.roomById(l.room)?.name ?: "", l.on, c) }
     }
 }
 
 @Composable
-fun CalendarTab() {
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("日历", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(20.dp))
-        Text("暂无日程", color = Color(0xFF6B7899), fontSize = 14.sp)
+fun MineTab(plan: Plan, night: Boolean, onEdit: () -> Unit, onHaSettings: () -> Unit, haUrl: String, haEnabled: Boolean, haConnected: Boolean) {
+    val c = uiColors(night)
+    Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)
+        .verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text("我的", color = c.textPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        MineRow("pencil", "编辑户型", c, onClick = onEdit)
+        MineRow("home", if (haEnabled && haUrl.isNotEmpty())
+            "Home Assistant · ${if (haConnected) "已连接" else "未连接"}" else "Home Assistant · 未配置", c, onClick = onHaSettings)
+        MineRow("chart", "房间 ${plan.rooms.size} · 灯 ${plan.lights.size} · 空调 ${plan.acs.size}", c)
+        MineRow("info", "HomeMate 0.3.0", c)
     }
 }
 
 @Composable
-fun MineTab(plan: Plan, onEdit: () -> Unit, onHaSettings: () -> Unit, haUrl: String, haEnabled: Boolean, haConnected: Boolean) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("我的", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        MineRow("✏️", "编辑户型", onClick = onEdit)
-        MineRow("🏠", if (haEnabled && haUrl.isNotEmpty())
-            "Home Assistant · ${if (haConnected) "已连接" else "未连接"}" else "Home Assistant · 未配置", onClick = onHaSettings)
-        MineRow("📊", "房间 ${plan.rooms.size} · 灯 ${plan.lights.size} · 空调 ${plan.acs.size}")
-        MineRow("ℹ️", "HomeMate 0.2.0")
-    }
-}
-
-@Composable
-fun MineRow(icon: String, text: String, onClick: (() -> Unit)? = null) {
-    Row(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(16.dp)).clickable { onClick?.invoke() }.padding(16.dp),
+fun MineRow(icon: String, text: String, c: UiColors, onClick: (() -> Unit)? = null) {
+    Row(Modifier.fillMaxWidth().background(c.surface, RoundedCornerShape(16.dp))
+            .border(1.dp, c.border, RoundedCornerShape(16.dp))
+            .clickable { onClick?.invoke() }.padding(16.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(icon); Text(text, color = Color(0xFFC6D0E8), fontSize = 14.sp)
+        Box(Modifier.size(38.dp).background(c.surfaceAlt, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+            LineIcon(icon, c.accent, Modifier.size(21.dp))
+        }
+        Text(text, color = c.textPrimary, fontSize = 14.sp)
     }
 }

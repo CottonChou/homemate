@@ -1,5 +1,6 @@
 package com.caidongzhou.homemate
 
+import android.app.Activity
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,9 +25,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
 
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import kotlin.math.abs
+import kotlin.math.min
 import androidx.compose.ui.text.font.FontWeight
 
 // 户型编辑器：顶栏 + 平面画布 + 底部工具。
@@ -42,11 +48,47 @@ fun PlanEditor(ctx: android.content.Context, plan: Plan, onClose: () -> Unit, on
     var nameText by remember { mutableStateOf("") }
     var nextId by remember { mutableIntStateOf(work.rooms.size + 1) }
     // 视图变换：米 → 像素
-    var zoom by remember { mutableFloatStateOf(60f) }
+    var zoom by remember { mutableFloatStateOf(96f) }
     var pan by remember { mutableStateOf(40f to 80f) }
+    var didFit by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
+    val topReserve = with(density) { 122.dp.toPx() }
+    val bottomReserve = with(density) { 224.dp.toPx() }
+    val view = LocalView.current
+
+    DisposableEffect(Unit) {
+        val window = (view.context as? Activity)?.window
+        if (window != null) {
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
+            }
+        }
+        onDispose {
+            if (window != null) {
+                WindowCompat.getInsetsController(window, view).apply {
+                    isAppearanceLightStatusBars = true
+                    isAppearanceLightNavigationBars = true
+                }
+            }
+        }
+    }
 
     fun toWorld(px: Float, py: Float): Pair<Float, Float> =
         Pair((px - pan.first) / zoom, (py - pan.second) / zoom)
+
+    fun fitPlan(viewW: Float, viewH: Float) {
+        val b = work.bounds
+        val bw = (b[2] - b[0]).coerceAtLeast(1f)
+        val bh = (b[3] - b[1]).coerceAtLeast(1f)
+        val availW = (viewW - 64f).coerceAtLeast(320f)
+        val availH = (viewH - topReserve - bottomReserve).coerceAtLeast(320f)
+        zoom = min(availW / bw, availH / bh).coerceIn(54f, 132f)
+        val drawW = bw * zoom
+        val drawH = bh * zoom
+        pan = (viewW - drawW) / 2f - b[0] * zoom to
+              topReserve + (availH - drawH) / 2f - b[1] * zoom
+    }
 
     fun hitTest(wx: Float, wy: Float): Any? {
         for (l in work.lights) {
@@ -65,7 +107,12 @@ fun PlanEditor(ctx: android.content.Context, plan: Plan, onClose: () -> Unit, on
     Box(Modifier.fillMaxSize().background(Color(0xF0080D1A))) {
         // 画布
         val textMeasurer = rememberTextMeasurer()
-        Canvas(Modifier.fillMaxSize().background(Color(0xFF0E1424)).pointerInput(mode) {
+        Canvas(Modifier.fillMaxSize().background(Color(0xFF0E1424)).onSizeChanged {
+            if (!didFit && it.width > 0 && it.height > 0) {
+                fitPlan(it.width.toFloat(), it.height.toFloat())
+                didFit = true
+            }
+        }.pointerInput(mode) {
             detectTapGestures(
                 onTap = { off ->
                     val (wx, wy) = toWorld(off.x, off.y)
@@ -74,10 +121,7 @@ fun PlanEditor(ctx: android.content.Context, plan: Plan, onClose: () -> Unit, on
                 },
                 onDoubleTap = { _ ->
                     // 自动居中：把户型包围盒放到画布中央
-                    val b = work.bounds
-                    val wPx = (b[2] - b[0]) * zoom
-                    val hPx = (b[3] - b[1]) * zoom
-                    pan = (size.width - wPx) / 2f - b[0] * zoom to (size.height - hPx) / 2f - b[1] * zoom
+                    fitPlan(size.width.toFloat(), size.height.toFloat())
                     selected = null
                 }
             )
@@ -176,10 +220,16 @@ fun PlanEditor(ctx: android.content.Context, plan: Plan, onClose: () -> Unit, on
                 )
                 // 房间名
                 val rect = rectOf(r)
-                val label = if (sel) r.name else r.name
-                val tl = textLayout(label, if (sel) Color(0xFFEAF1FF) else Color(0xFFD6E0F6), 15.sp, sel)
-                drawText(tl, topLeft = androidx.compose.ui.geometry.Offset(
-                    rect.center.x - tl.size.width / 2f, rect.center.y - tl.size.height / 2f))
+                val tl = textLayout(r.name, if (sel) Color(0xFFF5F8FF) else Color(0xFFD6E0F6), 16.sp, sel)
+                val labelLeft = rect.left + 14f
+                val labelTop = rect.top + 12f
+                drawRoundRect(
+                    color = if (sel) Color(0xE6334B78) else Color(0xD91A2742),
+                    topLeft = androidx.compose.ui.geometry.Offset(labelLeft - 10f, labelTop - 5f),
+                    size = androidx.compose.ui.geometry.Size(tl.size.width + 20f, tl.size.height + 10f),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(9f, 9f)
+                )
+                drawText(tl, topLeft = androidx.compose.ui.geometry.Offset(labelLeft, labelTop))
             }
             // 待绘制的新房间
             pendingRect?.let { pr ->
@@ -196,8 +246,16 @@ fun PlanEditor(ctx: android.content.Context, plan: Plan, onClose: () -> Unit, on
                 val sel = selected == l
                 drawCircle(Color(0xE6FFC97A), radius = if (sel) 17f else 12f, center = c)
                 drawCircle(Color(0xFF0E1424), radius = 4f, center = c)
-                val tl = textLayout("灯", Color(0xFFFFD9A0), 12.sp, sel)
-                drawText(tl, topLeft = androidx.compose.ui.geometry.Offset(c.x - tl.size.width / 2f, c.y - tl.size.height - 24f))
+                if (sel) {
+                    val tl = textLayout("灯", Color(0xFFFFD9A0), 12.sp, true)
+                    drawRoundRect(
+                        color = Color(0xE62A2116),
+                        topLeft = androidx.compose.ui.geometry.Offset(c.x - tl.size.width / 2f - 7f, c.y - tl.size.height - 25f),
+                        size = androidx.compose.ui.geometry.Size(tl.size.width + 14f, tl.size.height + 6f),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(7f, 7f)
+                    )
+                    drawText(tl, topLeft = androidx.compose.ui.geometry.Offset(c.x - tl.size.width / 2f, c.y - tl.size.height - 22f))
+                }
             }
             for (a in work.acs) {
                 val c = androidx.compose.ui.geometry.Offset(pan.first + a.pos[0] * zoom, pan.second + a.pos[1] * zoom)
@@ -208,8 +266,16 @@ fun PlanEditor(ctx: android.content.Context, plan: Plan, onClose: () -> Unit, on
                     size = androidx.compose.ui.geometry.Size(26f, 26f),
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(7f, 7f)
                 )
-                val ta = textLayout("空调", Color(0xFFBFF0D4), 12.sp, sel)
-                drawText(ta, topLeft = androidx.compose.ui.geometry.Offset(c.x - ta.size.width / 2f, c.y - ta.size.height - 26f))
+                if (sel) {
+                    val ta = textLayout("空调", Color(0xFFBFF0D4), 12.sp, true)
+                    drawRoundRect(
+                        color = Color(0xE6162D22),
+                        topLeft = androidx.compose.ui.geometry.Offset(c.x - ta.size.width / 2f - 7f, c.y - ta.size.height - 27f),
+                        size = androidx.compose.ui.geometry.Size(ta.size.width + 14f, ta.size.height + 6f),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(7f, 7f)
+                    )
+                    drawText(ta, topLeft = androidx.compose.ui.geometry.Offset(c.x - ta.size.width / 2f, c.y - ta.size.height - 24f))
+                }
             }
         }
 
@@ -242,8 +308,8 @@ fun PlanEditor(ctx: android.content.Context, plan: Plan, onClose: () -> Unit, on
             }
             Row(Modifier.fillMaxWidth().background(Color(0xFF0C1220)).padding(vertical = 14.dp, horizontal = 20.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly) {
-                EditorTool("➕", "加房间", mode == "addRoom") { mode = if (mode == "addRoom") "select" else "addRoom" }
-                EditorTool("💡", "加灯", mode == "addLight") {
+                EditorTool("plus", "加房间", mode == "addRoom") { mode = if (mode == "addRoom") "select" else "addRoom" }
+                EditorTool("bulb", "加灯", mode == "addLight") {
                     mode = "select"
                     val cx = work.bounds[0] + (work.bounds[2] - work.bounds[0]) / 2
                     val cz = work.bounds[1] + (work.bounds[3] - work.bounds[1]) / 2
@@ -251,13 +317,13 @@ fun PlanEditor(ctx: android.content.Context, plan: Plan, onClose: () -> Unit, on
                     work = work.copy(lights = work.lights + LightDevice(id, "新灯", work.rooms.firstOrNull()?.id ?: "", "ceiling", floatArrayOf(cx, cz), false, 1f))
                     selected = work.lights.last()
                 }
-                EditorTool("❄", "加空调", mode == "addAc") {
+                EditorTool("snow", "加空调", mode == "addAc") {
                     mode = "select"
                     val id = "ac${work.acs.size + 1}"
                     work = work.copy(acs = work.acs + AcDevice(id, "新空调", work.rooms.firstOrNull()?.id ?: "", floatArrayOf(work.bounds[2] - 0.5f, work.bounds[3] - 0.5f), false, 24f))
                     selected = work.acs.last()
                 }
-                EditorTool("↺", "重置", false) { work = Plan.demo(); selected = null }
+                EditorTool("reset", "重置", false) { work = Plan.demo(); selected = null }
             }
         }
 
@@ -289,7 +355,7 @@ fun EditorTool(icon: String, label: String, active: Boolean, onClick: () -> Unit
         modifier = Modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 4.dp)) {
         Box(Modifier.size(52.dp).background(if (active) Color(0xFF33507F) else Color(0xFF1B2540), RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center) {
-            Text(icon, fontSize = 22.sp)
+            LineIcon(icon, if (active) Color(0xFFBFD4FF) else Color(0xFF9FB0D6), Modifier.size(25.dp))
         }
         Spacer(Modifier.height(6.dp))
         Text(label, fontSize = 13.sp, color = if (active) Color(0xFFBFD4FF) else Color(0xFF9FB0D6), fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)
