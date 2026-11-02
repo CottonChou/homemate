@@ -229,7 +229,7 @@ fun App() {
 
             if (settingsOpen) HaSettingsScreen(
                 initialUrl = HaSettings.url(ctx), initialToken = HaSettings.token(ctx),
-                initialEnabled = HaSettings.enabled(ctx),
+                initialEnabled = HaSettings.enabled(ctx), night = night,
                 onClose = { settingsOpen = false },
                 onSave = { url, token, enabled ->
                     HaSettings.save(ctx, url, token, enabled)
@@ -395,7 +395,7 @@ fun MineTab(plan: Plan, night: Boolean, onEdit: () -> Unit, onHaSettings: () -> 
         MineRow("home", if (haEnabled && haUrl.isNotEmpty())
             "Home Assistant · ${if (haConnected) "已连接" else "未连接"}" else "Home Assistant · 未配置", c, onClick = onHaSettings)
         MineRow("chart", "房间 ${plan.rooms.size} · 灯 ${plan.lights.size} · 空调 ${plan.acs.size}", c)
-        MineRow("info", "HomeMate 0.3.0", c)
+        MineRow("info", "HomeMate " + BuildConfig.VERSION_NAME, c)
     }
 }
 

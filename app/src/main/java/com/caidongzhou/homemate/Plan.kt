@@ -114,8 +114,8 @@ data class Plan(
 
         // 内置示例：两室一厅，带窗户和家具，开箱即可看效果
         fun demo(): Plan = fromJson("""{
-          "version": 1, "name": "我的家", "wallHeight": 2.6, "interiorWallHeight": 1.25,
-          "camera": { "azimuth": 34, "elevation": 47 },
+          "version": 1, "name": "我的家", "wallHeight": 1.30, "interiorWallHeight": 0.62,
+          "camera": { "azimuth": 30, "elevation": 50 },
           "rooms": [
             { "id": "living", "name": "客厅", "rect": [0, 0, 4.8, 4.2], "floor": "oak" },
             { "id": "dining", "name": "餐厅", "rect": [4.8, 0, 2.6, 3.2], "floor": "tile" },
@@ -125,8 +125,10 @@ data class Plan(
             { "id": "bath", "name": "卫生间", "rect": [6.4, 5.2, 1.0, 2.4], "floor": "tile" }
           ],
           "openings": [
-            { "type": "window", "from": [0.6, 0], "to": [3.2, 0] },
-            { "type": "window", "from": [5.6, 0], "to": [7.0, 0] },
+            { "type": "window", "from": [0.6, 7.6], "to": [3.1, 7.6], "sill": 0.45, "head": 1.30 },
+            { "type": "window", "from": [4.2, 7.6], "to": [6.0, 7.6], "sill": 0.45, "head": 1.30 },
+            { "type": "window", "from": [7.4, 0.5], "to": [7.4, 2.4], "sill": 0.45, "head": 1.30 },
+            { "type": "window", "from": [7.4, 3.6], "to": [7.4, 4.8], "sill": 0.45, "head": 1.30 },
             { "type": "door", "from": [4.8, 1.2], "to": [4.8, 2.0] },
             { "type": "open", "from": [4.8, 3.6], "to": [4.8, 4.6] },
             { "type": "door", "from": [1.6, 4.2], "to": [2.4, 4.2] },
@@ -137,14 +139,20 @@ data class Plan(
             { "type": "sofa", "pos": [2.4, 1.1], "rot": 180, "width": 2.4, "color": "#8b93a7" },
             { "type": "coffeeTable", "pos": [2.4, 2.3], "width": 1.1 },
             { "type": "tv", "pos": [2.4, 3.9], "width": 1.6 },
-            { "type": "rug", "pos": [2.4, 2.2], "size": [2.8, 1.9], "color": "#4a5568" },
+            { "type": "rug", "pos": [2.4, 2.2], "size": [2.8, 1.9], "color": "#d8d1c3" },
             { "type": "diningSet", "pos": [6.1, 1.5], "width": 1.4, "rot": 90 },
             { "type": "kitchen", "pos": [7.2, 4.0], "width": 1.8, "rot": -90 },
             { "type": "bed", "pos": [1.9, 5.9], "width": 1.8, "rot": 0, "color": "#b98a7a" },
             { "type": "nightstand", "pos": [0.5, 4.7] },
             { "type": "wardrobe", "pos": [0.6, 6.9], "width": 2.2, "rot": 90 },
             { "type": "bed", "pos": [5.1, 6.2], "width": 1.5, "rot": 0, "color": "#7a95b9" },
-            { "type": "plant", "pos": [4.4, 0.6], "height": 1.1 }
+            { "type": "plant", "pos": [4.4, 0.6], "height": 1.1 },
+            { "type": "sideboard", "pos": [0.34, 3.30], "width": 1.5, "rot": 90 },
+            { "type": "plant", "pos": [0.42, 0.42], "height": 1.0 },
+            { "type": "fridge", "pos": [6.95, 4.95], "rot": 0 },
+            { "type": "desk", "pos": [4.12, 5.05], "width": 1.2, "rot": 90 },
+            { "type": "bathtub", "pos": [6.90, 6.75], "rot": 90 },
+            { "type": "toilet", "pos": [6.90, 5.48], "rot": 0 }
           ],
           "lights": [
             { "id": "living.main", "name": "客厅主灯", "room": "living", "type": "ceiling", "pos": [2.4, 2.1], "on": true, "brightness": 0.9 },
