@@ -1,7 +1,16 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+}
+
+// 发布签名：存在 keystore.properties 时使用正式密钥，否则回退到 debug 密钥，
+// 保证仓库在别人的机器上依然可以直接构建。
+val keystorePropsFile = rootProject.file("keystore.properties")
+val keystoreProps = Properties().apply {
+    if (keystorePropsFile.exists()) keystorePropsFile.inputStream().use { load(it) }
 }
 
 android {
@@ -16,9 +25,25 @@ android {
         versionName = "0.3.1"
     }
 
+    signingConfigs {
+        if (keystorePropsFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = if (keystorePropsFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
     compileOptions {

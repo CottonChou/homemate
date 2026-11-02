@@ -8,3 +8,8 @@ local.properties
 captures/
 *.apk
 !app/release/*.apk
+
+# 发布签名（仅保留在本地）
+keystore.properties
+*.jks
+*.keystore

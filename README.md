@@ -140,12 +140,12 @@ App 会将本地操作推送到 Home Assistant，同时订阅 WebSocket 状态�
 
 ## 安装
 
-从 [Releases](../../releases) 下载 `HomeMate-debug.apk`，传到手机后允许未知来源安装。
+从 [Releases](../../releases) 下载 `HomeMate-0.3.1.apk`（release 签名版），传到手机后允许未知来源安装。
 
 也可以通过 ADB：
 
 ```bash
-adb install HomeMate-debug.apk
+adb install HomeMate-0.3.1.apk
 ```
 
 系统要求：Android 8.0（API 26）及以上。
@@ -159,14 +159,17 @@ cd homemate
 export JAVA_HOME=$(/usr/libexec/java_home -v 17)
 export ANDROID_HOME=$HOME/Library/Android/sdk
 
-gradle assembleDebug
+gradle assembleRelease
 ```
 
 APK 输出：
 
 ```text
-app/build/outputs/apk/debug/app-debug.apk
+app/build/outputs/apk/release/app-release.apk
 ```
+
+发布签名从根目录的 `keystore.properties` 读取（该文件与 `*.jks` 不入库）；
+没有该文件时会自动回退到 debug 签名，因此仓库克隆下来依然可以直接构建。
 
 ## 代码结构
 
