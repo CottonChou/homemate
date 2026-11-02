@@ -50,16 +50,20 @@ class Floor3DRenderer {
         return P(ox + rx * scale * persp, oy + ry * scale * persp * 0.9f)
     }
 
+    var topInset = 0f
+    var bottomInset = 0f
+
     fun draw(canvas: Canvas, plan: Plan, viewW: Float, viewH: Float, onTapTest: ((MutableList<Triple<Float, Float, LightDevice>>) -> Unit)? = null) {
         val b = plan.bounds
         val worldW = b[2] - b[0]; val worldD = b[3] - b[1]
         val cx = (b[0] + b[2]) / 2f; val cz = (b[1] + b[3]) / 2f
-        val scale = min(viewW / (worldW + 2.4f), viewH / (worldD + 3.2f)) * 0.98f
-        val ox = viewW / 2f; val oy = viewH / 2f
+        val availH = viewH - topInset - bottomInset
+        val scale = min(viewW / (worldW + 2.4f), availH / (worldD + 3.2f)) * 0.98f
+        val ox = viewW / 2f; val oy = topInset + availH / 2f
 
         val dayAmt = 1f - t   // 1=白天 0=夜晚
 
-        canvas.drawColor(lerpColor(Color.rgb(26, 34, 56), Color.rgb(9, 12, 22), t))
+        canvas.drawColor(lerpColor(Color.rgb(226, 232, 242), Color.rgb(9, 12, 22), t))
 
         val hitLights = mutableListOf<Triple<Float, Float, LightDevice>>()
         val wallsBack = mutableListOf<DrawCmd>()
@@ -186,8 +190,8 @@ class Floor3DRenderer {
         val nl = sqrt(nx * nx + nz * nz)
         val sun = sunDir()
         val ndl = max(0.25f, (nx * sun[0] + nz * sun[1]) / nl)
-        val baseCol = if (seg.interior) Color.rgb(96, 104, 128) else Color.rgb(150, 158, 180)
-        val shade = if (night) 0.35f + 0.2f * (1f - dayAmt) else 0.55f + 0.45f * ndl
+        val baseCol = if (seg.interior) Color.rgb(150, 160, 185) else Color.rgb(205, 212, 228)
+        val shade = if (night) 0.35f + 0.2f * (1f - dayAmt) else 0.62f + 0.38f * ndl
         val col = Color.rgb(
             (Color.red(baseCol) * shade).toInt().coerceIn(0, 255),
             (Color.green(baseCol) * shade).toInt().coerceIn(0, 255),
@@ -230,7 +234,7 @@ class Floor3DRenderer {
                                 // 窗户：留玻璃透光
                                 if (o.sill > 0.03f) drawWallQuad(canvas, seg.x0, seg.z0, seg.x1, seg.z1, 0f, o.sill, col, cx, cz, scale, ox, oy, fixedAxis = horizontal)
                                 drawWallQuad(canvas, seg.x0, seg.z0, seg.x1, seg.z1, o.head, h, col, cx, cz, scale, ox, oy)
-                                val glass = Color.argb(if (night) 90 else 60, if (night) 255 else 200, if (night) 230 else 225, 255)
+                                val glass = Color.argb(if (night) 90 else 110, if (night) 255 else 120, if (night) 230 else 150, 255)
                                 drawGlassQuad(canvas, seg, o, glass, cx, cz, scale, ox, oy)
                             }
                             "door" -> { /* 门洞：直接留空 */ }

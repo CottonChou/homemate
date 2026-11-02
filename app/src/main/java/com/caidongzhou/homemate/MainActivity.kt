@@ -232,15 +232,21 @@ fun HomeTab(
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Box(Modifier.fillMaxWidth().height(320.dp)) {
             AndroidView(
-                factory = { c -> Home3DView(c).apply { this.plan = plan; onLightToggle = onToggle } },
+                factory = { c -> Home3DView(c).apply {
+                    this.plan = plan; onLightToggle = onToggle
+                    val density = c.resources.displayMetrics.density
+                    topInsetPx = 88 * density; bottomInsetPx = 8 * density
+                } },
                 update = { v -> v.plan = plan; v.setNight(night) },
                 modifier = Modifier.fillMaxSize()
             )
+            val topText = if (night) Color.White else Color(0xFF1C2436)
+            val topSub = if (night) Color(0xFF93A0BE) else Color(0xFF5A6880)
             Row(Modifier.fillMaxWidth().padding(top = 46.dp, start = 20.dp, end = 20.dp).align(Alignment.TopCenter),
                 horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
-                    Text("晴 4.9°C", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
-                    Text("次卧 26.6°C · 47.2%", color = Color(0xFF93A0BE), fontSize = 12.sp)
+                    Text("晴 4.9°C", color = topText, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                    Text("次卧 26.6°C · 47.2%", color = topSub, fontSize = 12.sp)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     TopIcon("🏠"); TopIcon("☀", active = !night, onClick = { onToggleNight() }); TopIcon("🌙", active = night, onClick = { onToggleNight() })

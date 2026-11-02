@@ -19,6 +19,8 @@ class Home3DView(context: android.content.Context) : android.view.View(context) 
     private var nightAnimTo = 0f
     private var nightAnimStart = 0L
     private var lastHits = listOf<Triple<Float, Float, LightDevice>>()
+    var topInsetPx = 0f
+    var bottomInsetPx = 0f
 
     fun setNight(n: Boolean, animate: Boolean = true) {
         val target = if (n) 1f else 0f
@@ -39,6 +41,8 @@ class Home3DView(context: android.content.Context) : android.view.View(context) 
             renderer.t = nightAnimFrom + (nightAnimTo - nightAnimFrom) * e
             if (p < 1f) postInvalidateOnAnimation() else nightAnimStart = 0L
         }
+        renderer.topInset = topInsetPx
+        renderer.bottomInset = bottomInsetPx
         renderer.draw(canvas, plan, width.toFloat(), height.toFloat()) { lastHits = it }
     }
 
